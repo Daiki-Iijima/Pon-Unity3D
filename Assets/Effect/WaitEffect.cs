@@ -2,25 +2,27 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(IDriver))]
 public class WaitEffect : BaseCollisionEffect {
-    private IDriver driver;
+    private IBallController _controller;
+    private CoroutineProvider _coroutineProvider;
 
-    [SerializeField] private float _waitTime;
+    private float _waitTime;
 
-    private void Awake() {
-        driver = GetComponent<IDriver>();
+    public WaitEffect(IBallController ballController,CoroutineProvider coroutineProvider,float waitTime,CollisionProvider provider) : base(provider) {
+        _controller = ballController;
+        _coroutineProvider = coroutineProvider;
+        _waitTime = waitTime;
     }
 
     protected override void CollisionEffect(Collision collision) {
-        driver.EnableDrive(false);
+        _controller.EnableMove(false);
 
-        StartCoroutine(SetEnable(_waitTime));
+        _coroutineProvider.CallStartCoroutine(SetEnable(_waitTime));
     }
 
     private IEnumerator SetEnable(float waitSec) {
         yield return new WaitForSeconds(waitSec);
 
-        driver.EnableDrive(true);
+        _controller.EnableMove(true);
     }
 }

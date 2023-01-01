@@ -2,33 +2,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class DefaultBall : BallBase {
-    private IDriver _driver;
+    public BallController _controller { get; private set; }
 
     private EffectList _effectList = new EffectList();
+
+    [SerializeField] private BallSetting _setting;
 
     protected override void Awake() {
         base.Awake();
 
-        _driver = GetComponent<BallDriver>();
-        if (_driver == null) {
-            _driver = this.gameObject.AddComponent<BallDriver>();
-        }
+        _controller = new BallController(this.transform, GetComponent<Rigidbody>(),_setting.Speed);
 
-        //  エフェクト設定
         //  反射エフェクト
-        ICollisionEffect reflectEffect = GetComponent<ReflectEffect>();
-        if (reflectEffect == null) {
-            reflectEffect = gameObject.AddComponent<ReflectEffect>();
-        }
+        ICollisionEffect reflectEffect = EffectFactory.CreateReflect(this.gameObject, _controller);
         reflectEffect.SetHitTargetTag(new List<string>() { "Wall", "Paddle" });
         _effectList.AddEffect(reflectEffect);
 
         //  ヒット時待機エフェクト
-        ICollisionEffect waitEffect = GetComponent<WaitEffect>();
-        if (waitEffect == null) {
-            waitEffect = gameObject.AddComponent<WaitEffect>();
-        }
+        ICollisionEffect waitEffect = EffectFactory.CreateWait(this.gameObject, _controller, _setting.WaitTime);
         waitEffect.SetHitTargetTag(new List<string>() { "Wall", "Paddle" });
         _effectList.AddEffect(waitEffect);
     }
@@ -40,13 +33,17 @@ public class DefaultBall : BallBase {
         _effectList.AdaptAllEffect(true);
 
         //  移動開始
-        _driver.EnableDrive(true);
+        _controller.EnableMove(true);
     }
 
     private void Update() {
         if (Input.GetKeyDown(KeyCode.Space)) {
-            _driver.EnableDrive(!_driver.IsDrive);
+            _controller.EnableMove(!_controller.IsMove);
         }
+    }
+
+    private void FixedUpdate() {
+        _controller.FixedTick(Time.deltaTime);
     }
 
 }

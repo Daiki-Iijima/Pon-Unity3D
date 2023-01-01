@@ -2,11 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PaddleController : MonoBehaviour
-{
-    [SerializeField] private float _speed = 10;
-
+public class CpuDefault : MonoBehaviour {
+    private Transform _ballTransform;
+    
+    [SerializeField] private float _speed = 5;
+    [SerializeField] private float _height = 0f;
     [SerializeField] private float _paddleEndLine = 6.5f;
+
     [SerializeField] private Transform _rightWall;
     [SerializeField] private Transform _leftWall;
 
@@ -40,16 +42,37 @@ public class PaddleController : MonoBehaviour
         this.transform.position = _defaultPosition;
     }
 
-    void Update()
-    {
+    public void SetBallTransform(Transform ball) {
+        _ballTransform = ball;
+    }
+
+    void Update() {
+        if(_ballTransform == null) {
+            return;
+        }
+
+        //  2次元平面に変換
+        Vector2 ballStart = new Vector2(_ballTransform.position.x, _ballTransform.position.z);
+        Vector2 ballEnd = ballStart + (new Vector2(_ballTransform.forward.x, _ballTransform.forward.z) * 50);
+
+        //  パドル上の直線との交点を求める
+        Vector2 intersectPoint = MathUtil.LineIntersect(rightEnd, leftEnd, ballStart, ballEnd);
+
+        //  計算エラー
+        if (float.IsNaN(intersectPoint.x) ||
+            float.IsInfinity(intersectPoint.x) ||
+            float.IsNaN(intersectPoint.y) ||
+            float.IsInfinity(intersectPoint.y)) {
+            return;
+        }
+
+        //  3次元に拡張
+        Vector3 targetPoint = new Vector3(intersectPoint.x, _height, intersectPoint.y);
+
         Vector3 oldPoint = this.transform.position;
 
-        if (Input.GetKey(KeyCode.D)) {
-            this.transform.position += Vector3.right * Time.deltaTime * _speed;
-        }
-        if (Input.GetKey(KeyCode.A)) {
-            this.transform.position += -Vector3.right * Time.deltaTime * _speed;
-        }
+        //  移動
+        this.transform.position = Vector3.MoveTowards(this.transform.position, targetPoint, _speed * Time.deltaTime);
 
         //  到達地点が範囲外なので、また壁に反射する
         Vector3 latestPos = this.transform.position;
@@ -57,5 +80,7 @@ public class PaddleController : MonoBehaviour
             latestPos.x - (this.transform.localScale.x / 2) < (leftEnd.x)) {
             this.transform.position = oldPoint;
         }
+
     }
+
 }
